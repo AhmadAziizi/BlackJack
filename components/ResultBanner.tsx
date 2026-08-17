@@ -12,7 +12,7 @@ const OUTCOME_DISPLAY: Record<PlayerStatus, { label: string; color: string }> = 
   win: { label: '🏆 Win!', color: '#1e8449' },
   lose: { label: '❌ Loss', color: '#922b21' },
   push: { label: '🤝 Push (Tie)', color: '#7d6608' },
-  bust: { label: '💥 Sikildin!', color: '#922b21' },
+  bust: { label: '💥 Busted!', color: '#922b21' },
   blackjack: { label: '⭐ Blackjack!', color: '#1a5276' },
   playing: { label: '', color: 'transparent' },
   standing: { label: '', color: 'transparent' },

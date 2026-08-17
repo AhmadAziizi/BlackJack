@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   turnLabel: {
-    color: '#f0f0f0',
+    color: '#070707',
     fontSize: 15,
     marginBottom: 10,
     fontWeight: '600',
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   hitButton: {
-    backgroundColor: '#27ae60', // green = go / take a card
+    backgroundColor: '#07f86c', // green = go / take a card
   },
   standButton: {
     backgroundColor: '#e74c3c', // red = stop / end turn
