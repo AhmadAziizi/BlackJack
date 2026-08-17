@@ -154,12 +154,6 @@ BlackJack/
 - Persistent money using local storage
 - Better automated tests for game logic
 
-## 👤 Author
 
-**Ahmad Azizi**
-
-GitHub: [AhmadAziizi](https://github.com/AhmadAziizi)
-
----
 
 This project is intended as a learning project for React Native, TypeScript, Expo, and Git-based development.
