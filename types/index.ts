@@ -38,19 +38,14 @@ export type GamePhase =
   | 'player2Turn'   // Player 2 is deciding Hit or Stand
   | 'player2Transition' // Transition screen after P2 finishes
   | 'dealerTurn'    // dealer auto-plays
-  | 'roundOver';    // results are shown
+  | 'roundOver'     // results are shown
+  | 'gameOver';     // a player ran out of money
 
 // ─── Scoreboard ───────────────────────────────────────────────────────────────
 
-export interface PlayerRecord {
-  wins: number;
-  losses: number;
-  pushes: number;
-}
-
-export interface ScoreboardState {
-  player1: PlayerRecord;
-  player2: PlayerRecord;
+export interface MoneyState {
+  player1: number;
+  player2: number;
 }
 
 // ─── Full Game State ──────────────────────────────────────────────────────────
@@ -61,5 +56,5 @@ export interface GameState {
   player2: PlayerState;
   dealer: PlayerState;
   phase: GamePhase;
-  scoreboard: ScoreboardState;
+  money: MoneyState;
 }

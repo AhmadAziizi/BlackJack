@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { GameState, PlayerState, GamePhase, ScoreboardState, PlayerRecord } from './types';
+import { GameState, PlayerState, GamePhase, MoneyState, PlayerRecord } from './types';
 import { buildDeck, shuffle, drawCard } from './game/deck';
 import {
   calcScore,
@@ -29,10 +29,10 @@ function emptyPlayer(name: string): PlayerState {
   return { name, hand: [], score: 0, status: 'standing' };
 }
 
-function emptyScoreboard(): ScoreboardState {
+function emptyMoney(): MoneyState {
   return {
-    player1: { wins: 0, losses: 0, pushes: 0 },
-    player2: { wins: 0, losses: 0, pushes: 0 },
+    player1: 1000,
+    player2: 1000,
   };
 }
 
@@ -44,7 +44,7 @@ const INITIAL_STATE: GameState = {
   player2: emptyPlayer('Player 2'),
   dealer: emptyPlayer('Dealer'),
   phase: 'idle',
-  scoreboard: emptyScoreboard(),
+  money: emptyMoney(),
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -189,35 +189,42 @@ export default function App() {
       status: resolvePlayer(state.player2, dealer.score, dealerBusted),
     };
 
-    // Calculate scoreboard changes
-    const newScoreboard = { ...state.scoreboard };
-    
-    // Update Player 1 record
-    if (player1.status === 'win' || player1.status === 'blackjack') newScoreboard.player1.wins++;
-    else if (player1.status === 'lose' || player1.status === 'bust') newScoreboard.player1.losses++;
-    else if (player1.status === 'push') newScoreboard.player1.pushes++;
+    // Calculate money changes
+    const newMoney = { ...state.money };
 
-    // Update Player 2 record
-    if (player2.status === 'win' || player2.status === 'blackjack') newScoreboard.player2.wins++;
-    else if (player2.status === 'lose' || player2.status === 'bust') newScoreboard.player2.losses++;
-    else if (player2.status === 'push') newScoreboard.player2.pushes++;
+    // Update Player 1 money
+    if (player1.status === 'win' || player1.status === 'blackjack') newMoney.player1 += 100;
+    else if (player1.status === 'lose' || player1.status === 'bust') newMoney.player1 = Math.max(0, newMoney.player1 - 100);
 
-    return { deck, dealer, player1, player2, phase: 'roundOver', scoreboard: newScoreboard };
+    // Update Player 2 money
+    if (player2.status === 'win' || player2.status === 'blackjack') newMoney.player2 += 100;
+    else if (player2.status === 'lose' || player2.status === 'bust') newMoney.player2 = Math.max(0, newMoney.player2 - 100);
+
+    const isGameOver = newMoney.player1 === 0 || newMoney.player2 === 0;
+
+    return { deck, dealer, player1, player2, phase: isGameOver ? 'gameOver' : 'roundOver', money: newMoney };
   }
 
-  // ── Scoreboard / New Round ─────────────────────────────────────────────────
+  // ── Money / New Round ─────────────────────────────────────────────────
   function handleNewRound() {
-    // Keep the scoreboard, reset everything else
+    // Keep the money, reset everything else
     setGame((prev) => ({
       ...INITIAL_STATE,
-      scoreboard: prev.scoreboard,
+      money: prev.money,
     }));
   }
 
-  function handleResetScoreboard() {
+  function handleRestartGame() {
+    setGame({
+      ...INITIAL_STATE,
+      money: emptyMoney(),
+    });
+  }
+
+  function handleResetMoney() {
     setGame((prev) => ({
       ...prev,
-      scoreboard: emptyScoreboard(),
+      money: emptyMoney(),
     }));
   }
 
@@ -230,9 +237,9 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.screen}>
-        
-        {/* Scoreboard is always visible at top */}
-        <Scoreboard scoreboard={game.scoreboard} onReset={handleResetScoreboard} />
+
+        {/* Money is always visible at top */}
+        <Scoreboard money={game.money} onReset={handleResetMoney} />
 
         {/* Title */}
         <Text style={styles.title}>♠ Ahmed Game♠</Text>
@@ -273,34 +280,35 @@ export default function App() {
 
             {roundActive && <View style={styles.divider} />}
 
-            {/* Player 1 section */}
+            {/* Players side by side */}
             {roundActive && (
-              <View style={styles.section}>
-                <Hand player={game.player1} showScore />
-              </View>
-            )}
+              <View style={styles.playersContainer}>
+                {/* Player 1 section */}
+                <View style={styles.playerColumn}>
+                  <Hand player={game.player1} showScore />
+                  {/* Hit / Stand buttons — shown only for the active player */}
+                  {phase === 'player1Turn' && (
+                    <ActionButtons
+                      playerName="Player 1"
+                      onHit={handleHit}
+                      onStand={handleStand}
+                    />
+                  )}
+                </View>
 
-            {/* Player 2 section */}
-            {roundActive && (
-              <View style={styles.section}>
-                <Hand player={game.player2} showScore />
+                {/* Player 2 section */}
+                <View style={styles.playerColumn}>
+                  <Hand player={game.player2} showScore />
+                  {/* Hit / Stand buttons — shown only for the active player */}
+                  {phase === 'player2Turn' && (
+                    <ActionButtons
+                      playerName="Player 2"
+                      onHit={handleHit}
+                      onStand={handleStand}
+                    />
+                  )}
+                </View>
               </View>
-            )}
-
-            {/* Hit / Stand buttons — shown only for the active player */}
-            {phase === 'player1Turn' && (
-              <ActionButtons
-                playerName="Player 1"
-                onHit={handleHit}
-                onStand={handleStand}
-              />
-            )}
-            {phase === 'player2Turn' && (
-              <ActionButtons
-                playerName="Player 2"
-                onHit={handleHit}
-                onStand={handleStand}
-              />
             )}
 
             {/* Dealer is playing message */}
@@ -317,6 +325,28 @@ export default function App() {
                 {game.dealer.status === 'bust' && (
                   <ResultBanner playerName="Dealer" status="bust" />
                 )}
+              </View>
+            )}
+
+            {/* Game Over Screen */}
+            {phase === 'gameOver' && (
+              <View style={styles.gameOverContainer}>
+                <Text style={styles.gameOverTitle}>GAME OVER</Text>
+
+                {game.money.player1 === 0 && game.money.player2 === 0 ? (
+                  <Text style={styles.gameOverMsg}>Both players are out of money.</Text>
+                ) : game.money.player1 === 0 ? (
+                  <Text style={styles.gameOverMsg}>Player 1 is out of money.</Text>
+                ) : (
+                  <Text style={styles.gameOverMsg}>Player 2 is out of money.</Text>
+                )}
+
+                <Text style={styles.gameOverBalance}>Player 1: ${game.money.player1}</Text>
+                <Text style={styles.gameOverBalance}>Player 2: ${game.money.player2}</Text>
+
+                <TouchableOpacity style={styles.restartButton} onPress={handleRestartGame}>
+                  <Text style={styles.restartButtonText}>Restart Game</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -377,6 +407,17 @@ const styles = StyleSheet.create({
     minHeight: 40,
     marginVertical: 4,
   },
+  playersContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+  },
+  playerColumn: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
   divider: {
     width: '80%',
     height: 1,
@@ -409,6 +450,43 @@ const styles = StyleSheet.create({
   },
   dealButtonText: {
     color: '#1a1a1a',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  gameOverContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 20,
+    borderRadius: 12,
+    width: '100%',
+  },
+  gameOverTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginBottom: 10,
+    letterSpacing: 2,
+  },
+  gameOverMsg: {
+    fontSize: 18,
+    color: '#ffffff',
+    marginBottom: 16,
+  },
+  gameOverBalance: {
+    fontSize: 16,
+    color: '#d0d0d0',
+    marginBottom: 4,
+  },
+  restartButton: {
+    marginTop: 20,
+    backgroundColor: '#9b59b6',
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    borderRadius: 10,
+  },
+  restartButtonText: {
+    color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
   },

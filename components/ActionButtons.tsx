@@ -36,11 +36,11 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 10,
   },
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 36,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
   },
   hitButton: {
